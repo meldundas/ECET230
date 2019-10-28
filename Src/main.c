@@ -24,6 +24,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -148,12 +149,107 @@ int main(void)
   while (1)
   {
 
-	  printf("0: %li, 12: %li, 2: %li, 3: %li, 4: %li, 5: %li\n", adcArd[0], adcArd[1], adcArd[2], adcArd[3], adcArd[4], adcArd[5]);
-	  HAL_Delay(500);
+	//  printf("0: %li, 12: %li, 2: %li, 3: %li, 4: %li, 5: %li\n", adcArd[0], adcArd[1], adcArd[2], adcArd[3], adcArd[4], adcArd[5]);
+
+
+	//  HAL_Delay(500);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }
+
+	  //build packet
+
+	  strcpy(packet, "###");			//###
+
+	  sprintf(tempString, "%03d", packetNumber);
+	  strcat(packet, tempString);		//000 - 999
+
+//	  sprintf(tempString, "%04X%04X%04X", (uint16_t)accel.x, (uint16_t)accel.y, (uint16_t)accel.z);
+//	  strcat(packet, tempString);		//x: 0000 - FFFF y: 0000 - FFFF z: 0000 - FFFF
+
+	  //Arduino ARD.A3-ADC, ARD.A4-ADC, ARD.A5-ADC
+	  sprintf(tempString, "%04d%04d%04d", adcArd[0], adcArd[1], adcArd[2]);
+	  strcat(packet, tempString);		//0-4095
+	//  printf("%s\n", tempString);
+
+	  //Arduino digital inputs
+	  HAL_GPIO_ReadPin(ARD_D7_GPIO_Port, ARD_D7_Pin) ? strcpy(tempString, "1") : strcpy(tempString, "0");
+	  HAL_GPIO_ReadPin(ARD_D6_GPIO_Port, ARD_D6_Pin) ? strcat(tempString, "1") : strcat(tempString, "0");
+	  HAL_GPIO_ReadPin(ARD_D5_GPIO_Port, ARD_D5_Pin) ? strcat(tempString, "1") : strcat(tempString, "0");
+	  HAL_GPIO_ReadPin(ARD_D4_GPIO_Port, ARD_D4_Pin) ? strcat(tempString, "1") : strcat(tempString, "0");
+	  HAL_GPIO_ReadPin(ARD_D3_GPIO_Port, ARD_D3_Pin) ? strcat(tempString, "1") : strcat(tempString, "0");
+	  HAL_GPIO_ReadPin(ARD_D2_GPIO_Port, ARD_D2_Pin) ? strcat(tempString, "1") : strcat(tempString, "0");
+	  HAL_GPIO_ReadPin(ARD_D1_GPIO_Port, ARD_D1_Pin) ? strcat(tempString, "1") : strcat(tempString, "0");
+	  HAL_GPIO_ReadPin(ARD_D0_GPIO_Port, ARD_D0_Pin) ? strcat(tempString, "1") : strcat(tempString, "0");
+
+	  //button
+	  HAL_GPIO_ReadPin(BUTTON_EXTI13_GPIO_Port, BUTTON_EXTI13_Pin) ? strcat(tempString, "1") : strcat(tempString, "0");
+	  strcat(packet, tempString);
+
+	  //calculate checksum 000-999
+	  for(int i=3; i<45;i++)
+	  {
+		  checksum+=packet[i];
+	  }
+
+	  sprintf(tempString, "%03d", checksum%=1000);
+	  strcat(packet, tempString);
+
+	  checksum=0;	//reset for next run
+
+	  // CRLF
+	  strcat(packet, "\r\n");
+
+	//  printf("%s", packet);
+	  HAL_UART_Transmit(&huart1, packet, sizeof(packet), 500);
+
+
+	  packetNumber++;
+	  packetNumber%=1000;
+
+	  HAL_UART_Receive(&huart1, serialBuffer, sizeof(serialBuffer), 500);
+
+	  int state=0;
+	  int checkSumCalc=0;
+	  for(int i=0;i<sizeof(serialBuffer); i++)
+	  {
+		  switch(i)
+		  {
+		  case 0: if(serialBuffer[i]=='#') state++; else state=0; break;
+		  case 1: if(serialBuffer[i]=='#') state++; else state=0; break;
+		  case 2: if(serialBuffer[i]=='#') state++; else state=0; break;
+		  case 3:
+		  case 4:
+		  case 5:
+		  case 6:
+		  case 7:
+		  case 8: checksum += serialBuffer[i]; break;
+		  case 9: checkSumCalc += (serialBuffer[i]-'0')*100; break;
+		  case 10: checkSumCalc += (serialBuffer[i]-'0')*10; break;
+		  case 11: checkSumCalc += (serialBuffer[i]-'0'); break;
+		  }
+	  }
+	  printf("checksum %03d\n", checksum);
+	  printf("checkSumCalc %03d\n", checkSumCalc);
+
+	  if(state==3)
+			  if(checksum == checkSumCalc)
+			  {
+				  HAL_GPIO_WritePin(ARD_D13_GPIO_Port, ARD_D13_Pin, serialBuffer[3]-'0');
+				  HAL_GPIO_WritePin(ARD_D12_GPIO_Port, ARD_D12_Pin, serialBuffer[4]-'0');
+				  HAL_GPIO_WritePin(ARD_D11_GPIO_Port, ARD_D11_Pin, serialBuffer[5]-'0');
+				  HAL_GPIO_WritePin(ARD_D10_GPIO_Port, ARD_D10_Pin, serialBuffer[6]-'0');
+				  HAL_GPIO_WritePin(ARD_D9_GPIO_Port, ARD_D9_Pin, serialBuffer[7]-'0');
+				  HAL_GPIO_WritePin(ARD_D8_GPIO_Port, ARD_D8_Pin, serialBuffer[8]-'0');
+			  }
+
+		  checksum=0;	//reset for next run
+		  checkSumCalc=0;
+		  state=0;
+
+	  HAL_Delay(100);
+	  }
+
   /* USER CODE END 3 */
 }
 
