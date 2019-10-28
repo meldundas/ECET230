@@ -66,7 +66,8 @@ float myTemperature;
 float myPressure;
 float myHumidity;
 
-uint8_t packet[50] = {0};
+#define packetLength 57
+uint8_t packet[packetLength] = {0};
 uint8_t tempString[15];
 int packetNumber=0;
 
@@ -199,7 +200,7 @@ int main(void)
 	  strcat(packet, "\r\n");
 
 	//  printf("%s", packet);
-	  HAL_UART_Transmit(&huart1, packet, sizeof(packet), 500);
+	  HAL_UART_Transmit(&huart1, packet, packetLength-1, 500);
 
 
 	  packetNumber++;
