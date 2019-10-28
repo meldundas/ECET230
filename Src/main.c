@@ -20,11 +20,14 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "app_x-cube-mems1.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include <string.h>
+#include "custom_env_sensors.h"
+#include "custom_motion_sensors.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,24 +50,21 @@ DMA_HandleTypeDef hdma_adc1;
 
 DFSDM_Channel_HandleTypeDef hdfsdm1_channel1;
 
-I2C_HandleTypeDef hi2c2;
-
 QSPI_HandleTypeDef hqspi;
 
 SPI_HandleTypeDef hspi3;
 
-UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart3;
 
 PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
 /* USER CODE BEGIN PV */
-float temperature;
-float humidity;
-float pressure;
-//BSP_MOTION_SENSOR_AxesRaw_t gyro;
-//BSP_MOTION_SENSOR_AxesRaw_t accel;
-//BSP_MOTION_SENSOR_AxesRaw_t mag;
+CUSTOM_MOTION_SENSOR_Axes_t myAcceleration;
+CUSTOM_MOTION_SENSOR_Axes_t myAngular_velocity;
+CUSTOM_MOTION_SENSOR_Axes_t myMagnetic_field;
+float myTemperature;
+float myPressure;
+float myHumidity;
 
 uint8_t packet[50] = {0};
 uint8_t tempString[15];
@@ -83,10 +83,8 @@ static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_DFSDM1_Init(void);
-static void MX_I2C2_Init(void);
 static void MX_QUADSPI_Init(void);
 static void MX_SPI3_Init(void);
-static void MX_USART1_UART_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_USB_OTG_FS_PCD_Init(void);
 /* USER CODE BEGIN PFP */
@@ -130,12 +128,11 @@ int main(void)
   MX_DMA_Init();
   MX_ADC1_Init();
   MX_DFSDM1_Init();
-  MX_I2C2_Init();
   MX_QUADSPI_Init();
   MX_SPI3_Init();
-  MX_USART1_UART_Init();
   MX_USART3_UART_Init();
   MX_USB_OTG_FS_PCD_Init();
+  MX_MEMS_Init();
   /* USER CODE BEGIN 2 */
 
   //configure ADC inputs
@@ -149,12 +146,13 @@ int main(void)
   while (1)
   {
 
-	//  printf("0: %li, 12: %li, 2: %li, 3: %li, 4: %li, 5: %li\n", adcArd[0], adcArd[1], adcArd[2], adcArd[3], adcArd[4], adcArd[5]);
+	printf("0: %li, 12: %li, 2: %li, 3: %li, 4: %li, 5: %li\n", adcArd[0], adcArd[1], adcArd[2], adcArd[3], adcArd[4], adcArd[5]);
 
 
 	//  HAL_Delay(500);
     /* USER CODE END WHILE */
 
+  MX_MEMS_Process();
     /* USER CODE BEGIN 3 */
 
 	  //build packet
@@ -164,11 +162,11 @@ int main(void)
 	  sprintf(tempString, "%03d", packetNumber);
 	  strcat(packet, tempString);		//000 - 999
 
-//	  sprintf(tempString, "%04X%04X%04X", (uint16_t)accel.x, (uint16_t)accel.y, (uint16_t)accel.z);
-//	  strcat(packet, tempString);		//x: 0000 - FFFF y: 0000 - FFFF z: 0000 - FFFF
+	  sprintf(tempString, "%04X%04X%04X", (uint16_t)myAcceleration.x, (uint16_t)myAcceleration.y, (uint16_t)myAcceleration.z);
+	  strcat(packet, tempString);		//x: 0000 - FFFF y: 0000 - FFFF z: 0000 - FFFF
 
 	  //Arduino ARD.A3-ADC, ARD.A4-ADC, ARD.A5-ADC
-	  sprintf(tempString, "%04d%04d%04d", adcArd[0], adcArd[1], adcArd[2]);
+	  sprintf(tempString, "%04d%04d%04d%04d%04d%04d", adcArd[0], adcArd[1], adcArd[2],adcArd[3], adcArd[4], adcArd[5]);
 	  strcat(packet, tempString);		//0-4095
 	//  printf("%s\n", tempString);
 
@@ -472,52 +470,6 @@ static void MX_DFSDM1_Init(void)
 }
 
 /**
-  * @brief I2C2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_I2C2_Init(void)
-{
-
-  /* USER CODE BEGIN I2C2_Init 0 */
-
-  /* USER CODE END I2C2_Init 0 */
-
-  /* USER CODE BEGIN I2C2_Init 1 */
-
-  /* USER CODE END I2C2_Init 1 */
-  hi2c2.Instance = I2C2;
-  hi2c2.Init.Timing = 0x10909CEC;
-  hi2c2.Init.OwnAddress1 = 0;
-  hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  hi2c2.Init.OwnAddress2 = 0;
-  hi2c2.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
-  hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&hi2c2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure Analogue filter 
-  */
-  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c2, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure Digital filter 
-  */
-  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c2, 0) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN I2C2_Init 2 */
-
-  /* USER CODE END I2C2_Init 2 */
-
-}
-
-/**
   * @brief QUADSPI Initialization Function
   * @param None
   * @retval None
@@ -587,41 +539,6 @@ static void MX_SPI3_Init(void)
   /* USER CODE BEGIN SPI3_Init 2 */
 
   /* USER CODE END SPI3_Init 2 */
-
-}
-
-/**
-  * @brief USART1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART1_UART_Init(void)
-{
-
-  /* USER CODE BEGIN USART1_Init 0 */
-
-  /* USER CODE END USART1_Init 0 */
-
-  /* USER CODE BEGIN USART1_Init 1 */
-
-  /* USER CODE END USART1_Init 1 */
-  huart1.Instance = USART1;
-  huart1.Init.BaudRate = 115200;
-  huart1.Init.WordLength = UART_WORDLENGTH_8B;
-  huart1.Init.StopBits = UART_STOPBITS_1;
-  huart1.Init.Parity = UART_PARITY_NONE;
-  huart1.Init.Mode = UART_MODE_TX_RX;
-  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-  huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&huart1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART1_Init 2 */
-
-  /* USER CODE END USART1_Init 2 */
 
 }
 
