@@ -122,7 +122,8 @@ void MX_DataLogTerminal_Init(void)
   BSP_LED_Init(LED2);
 
   /* Initialize button */
-  BSP_PB_Init(BUTTON_KEY, BUTTON_MODE_EXTI);
+//  BSP_PB_Init(BUTTON_KEY, BUTTON_MODE_EXTI);
+  BSP_PB_Init(BUTTON_KEY, BUTTON_MODE_GPIO);
 
   /* Check what is the Push Button State when the button is not pressed. It can change across families */
   PushButtonState = (BSP_PB_GetState(BUTTON_KEY)) ?  0 : 1;

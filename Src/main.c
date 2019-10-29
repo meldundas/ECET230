@@ -204,7 +204,7 @@ int main(void)
 	  strcat(packet, "\r\n");
 
 	//  printf("%s", packet);
-	  HAL_UART_Transmit(&huart1, packet, packetLength-1, 200);
+	  HAL_UART_Transmit(&huart1, packet, packetLength-1, 100);
 
 
 	  packetNumber++;
@@ -253,7 +253,7 @@ int main(void)
 		  checkSumCalc=0;
 		  state=0;
 
-	  HAL_Delay(100);
+	  HAL_Delay(20);
 	  }
 
   /* USER CODE END 3 */
@@ -801,6 +801,8 @@ int __io_putchar(int ch)
 	ITM_SendChar(ch);
 	return 0;
 }
+
+
 /* USER CODE END 4 */
 
 /**
