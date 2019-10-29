@@ -153,7 +153,7 @@ int main(void)
 	//  HAL_Delay(500);
     /* USER CODE END WHILE */
 
-	MX_MEMS_Process();
+	  MX_MEMS_Process();
     /* USER CODE BEGIN 3 */
 
 	  //build packet
@@ -167,7 +167,7 @@ int main(void)
 	  strcat(packet, tempString);		//x: 0000 - FFFF y: 0000 - FFFF z: 0000 - FFFF
 
 	  //Arduino ARD.A3-ADC, ARD.A4-ADC, ARD.A5-ADC
-	  sprintf(tempString, "%04d%04d%04d%04d%04d%04d", adcArd[0], adcArd[1], adcArd[2],adcArd[3], adcArd[4], adcArd[5]);
+	  sprintf(tempString, "%04ld%04ld%04ld%04ld%04ld%04ld", adcArd[0], adcArd[1], adcArd[2],adcArd[3], adcArd[4], adcArd[5]);
 	  strcat(packet, tempString);		//0-4095
 	//  printf("%s\n", tempString);
 
@@ -207,6 +207,7 @@ int main(void)
 	  packetNumber++;
 	  packetNumber%=1000;
 
+	  //all 0s 288, all 1s 294 checksum
 	  HAL_UART_Receive(&huart1, serialBuffer, sizeof(serialBuffer), 200);
 
 	  int state=0;
@@ -650,7 +651,8 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOE, M24SR64_Y_RF_DISABLE_Pin|M24SR64_Y_GPO_Pin|ISM43362_RST_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, ARD_D10_Pin|SPBTLE_RF_RST_Pin|ARD_D9_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, ARD_D10_Pin|ARD_D13_Pin|ARD_D12_Pin|ARD_D11_Pin 
+                          |SPBTLE_RF_RST_Pin|ARD_D9_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, ARD_D8_Pin|ISM43362_BOOT0_Pin|ISM43362_WAKEUP_Pin|LED2_Pin 
@@ -696,19 +698,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : ARD_D10_Pin SPBTLE_RF_RST_Pin ARD_D9_Pin */
-  GPIO_InitStruct.Pin = ARD_D10_Pin|SPBTLE_RF_RST_Pin|ARD_D9_Pin;
+  /*Configure GPIO pins : ARD_D10_Pin ARD_D13_Pin ARD_D12_Pin ARD_D11_Pin 
+                           SPBTLE_RF_RST_Pin ARD_D9_Pin */
+  GPIO_InitStruct.Pin = ARD_D10_Pin|ARD_D13_Pin|ARD_D12_Pin|ARD_D11_Pin 
+                          |SPBTLE_RF_RST_Pin|ARD_D9_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : ARD_D13_Pin ARD_D12_Pin ARD_D11_Pin */
-  GPIO_InitStruct.Pin = ARD_D13_Pin|ARD_D12_Pin|ARD_D11_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : ARD_D3_Pin ARD_D6_Pin ARD_D5_Pin */

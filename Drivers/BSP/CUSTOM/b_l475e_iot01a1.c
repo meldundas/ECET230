@@ -527,7 +527,7 @@ int32_t BSP_COM_SelectLogPort(COM_TypeDef COM)
   return BSP_ERROR_NONE; 
 }
 
-//mel #ifdef __GNUC__
+//#ifdef __GNUC__
 // int __io_putchar (int ch)
 //#else
 // int fputc (int ch, FILE *f)
@@ -536,7 +536,7 @@ int32_t BSP_COM_SelectLogPort(COM_TypeDef COM)
 //  (void)HAL_UART_Transmit(&hcom_uart[COM_ActiveLogPort], (uint8_t *)&ch, 1, COM_POLL_TIMEOUT);
 //  return ch;
 //}
-#endif /* USE_COM_LOG */
+#endif /* USE_COM_LOG */ 
 /**
  * @brief  Initializes USART1 MSP.
  * @param  huart USART1 handle

@@ -156,7 +156,7 @@ void MX_DataLogTerminal_Init(void)
     floatToInt(MotionCapabilities[i].AccMaxOdr, &out_value_odr, 3);
     snprintf(dataOut, MAX_BUF_SIZE, " MAX ACC ODR: %d.%03d Hz, MAX ACC FS: %d\r\n", (int)out_value_odr.out_int,
              (int)out_value_odr.out_dec, (int)MotionCapabilities[i].AccMaxFS);
-//   printf("%s", dataOut);
+//    printf("%s", dataOut);
     floatToInt(MotionCapabilities[i].GyroMaxOdr, &out_value_odr, 3);
     snprintf(dataOut, MAX_BUF_SIZE, " MAX GYRO ODR: %d.%03d Hz, MAX GYRO FS: %d\r\n", (int)out_value_odr.out_int,
              (int)out_value_odr.out_dec, (int)MotionCapabilities[i].GyroMaxFS);
@@ -386,7 +386,6 @@ static void Gyro_Sensor_Handler(uint32_t Instance)
   }
 
 //  printf("%s", dataOut);
-
   myAngular_velocity.x = angular_velocity.x;
   myAngular_velocity.y = angular_velocity.y;
   myAngular_velocity.z = angular_velocity.z;
@@ -454,10 +453,10 @@ static void Magneto_Sensor_Handler(uint32_t Instance)
   }
 
 //  printf("%s", dataOut);
-
   myMagnetic_field.x = magnetic_field.x;
   myMagnetic_field.y = magnetic_field.y;
   myMagnetic_field.z = magnetic_field.z;
+
 
   if (verbose == 1)
   {
@@ -522,7 +521,6 @@ static void Temp_Sensor_Handler(uint32_t Instance)
   }
 
 //  printf("%s", dataOut);
-
   myTemperature = temperature;
 
   if (verbose == 1)
@@ -577,7 +575,6 @@ static void Press_Sensor_Handler(uint32_t Instance)
   }
 
 //  printf("%s", dataOut);
-
   myPressure = pressure;
 
   if (verbose == 1)
@@ -591,7 +588,7 @@ static void Press_Sensor_Handler(uint32_t Instance)
       snprintf(dataOut, MAX_BUF_SIZE, "WHOAMI[%d]: 0x%x\r\n", (int)Instance, (int)whoami);
     }
 
-//    printf("%s", dataOut);
+//   printf("%s", dataOut);
 
     if (CUSTOM_ENV_SENSOR_GetOutputDataRate(Instance, ENV_PRESSURE, &odr))
     {
@@ -632,7 +629,6 @@ static void Hum_Sensor_Handler(uint32_t Instance)
   }
 
 //  printf("%s", dataOut);
-
   myHumidity = humidity;
 
   if (verbose == 1)

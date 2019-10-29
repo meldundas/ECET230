@@ -1,7 +1,7 @@
 [PreviousGenFiles]
-HeaderPath=C:/Users/mdundas/Dropbox/ECET260L/ECET260Labs2019V2/ECET230/Inc
+HeaderPath=C:/Users/Dad/Dropbox/ECET260L/ECET260Labs2019V2/ECET230/Inc
 HeaderFiles=stm32l4xx_it.h;stm32l4xx_hal_conf.h;main.h;app_x-cube-mems1.h;lsm6dsl_settings.h;lis3mdl_settings.h;hts221_settings.h;lps22hb_settings.h;custom_mems_conf.h;custom_motion_sensors.h;custom_motion_sensors_ex.h;motion_sensor.h;custom_env_sensors.h;custom_env_sensors_ex.h;env_sensor.h;b_l475e_iot01a1_bus.h;b_l475e_iot01a1_errno.h;b_l475e_iot01a1_conf.h;b_l475e_iot01a1.h;RTE_Components.h;
-SourcePath=C:/Users/mdundas/Dropbox/ECET260L/ECET260Labs2019V2/ECET230/Src
+SourcePath=C:/Users/Dad/Dropbox/ECET260L/ECET260Labs2019V2/ECET230/Src
 SourceFiles=stm32l4xx_it.c;stm32l4xx_hal_msp.c;main.c;custom_motion_sensors.c;custom_motion_sensors_ex.c;custom_env_sensors.c;custom_env_sensors_ex.c;app_x-cube-mems1.c;b_l475e_iot01a1_bus.c;b_l475e_iot01a1.c;
 
 [PreviousLibFiles]
