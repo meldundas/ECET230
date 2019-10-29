@@ -151,8 +151,11 @@ int main(void)
   {
 
 	//printf("0: %li, 12: %li, 2: %li, 3: %li, 4: %li, 5: %li\n", adcArd[0], adcArd[1], adcArd[2], adcArd[3], adcArd[4], adcArd[5]);
-
-
+	printf("gyro: %04X %04X %04X\n", (uint16_t)myAngular_velocity.x, (uint16_t)myAngular_velocity.y, (uint16_t)myAngular_velocity.z);
+	printf("mag: %04X %04X %04X\n", (uint16_t)myMagnetic_field.x, (uint16_t)myMagnetic_field.y, (uint16_t)myMagnetic_field.z);
+	printf("temp: %05.1f\n", myTemperature);
+	printf("hum : %05.1f\n", myHumidity);
+	printf("pres: %05.1f\n", myPressure/10);
 	//  HAL_Delay(500);
     /* USER CODE END WHILE */
 
