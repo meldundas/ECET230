@@ -232,7 +232,7 @@ int32_t BSP_PB_Init(Button_TypeDef Button, ButtonMode_TypeDef ButtonMode)
   /* Enable the BUTTON clock*/ 
   USER_BUTTON_GPIO_CLK_ENABLE();
   gpio_init_structure.Pin = BUTTON_PIN [Button];
-  gpio_init_structure.Pull = GPIO_NOPULL; //mel GPIO_PULLDOWN;
+  gpio_init_structure.Pull = GPIO_PULLDOWN;
   gpio_init_structure.Speed = GPIO_SPEED_FREQ_HIGH;
   
   if(ButtonMode == BUTTON_MODE_GPIO)
@@ -244,7 +244,7 @@ int32_t BSP_PB_Init(Button_TypeDef Button, ButtonMode_TypeDef ButtonMode)
   else /* (ButtonMode == BUTTON_MODE_EXTI) */
   {      
     /* Configure Button pin as input with External interrupt */    
-    gpio_init_structure.Mode = GPIO_MODE_IT_FALLING; //mel GPIO_MODE_IT_RISING;
+    gpio_init_structure.Mode = GPIO_MODE_IT_RISING;
     
     HAL_GPIO_Init(BUTTON_PORT[Button], &gpio_init_structure);
     
@@ -542,6 +542,7 @@ int32_t BSP_COM_SelectLogPort(COM_TypeDef COM)
  * @param  huart USART1 handle
  * @retval None
  */
+DMA_HandleTypeDef hdma_usart1_rx;
 
 static void USART1_MspInit(UART_HandleTypeDef* uartHandle)
 {
@@ -564,6 +565,24 @@ static void USART1_MspInit(UART_HandleTypeDef* uartHandle)
     GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+    /* Peripheral DMA init*/
+  
+    hdma_usart1_rx.Instance = DMA1_Channel5;
+    hdma_usart1_rx.Init.Request = DMA_REQUEST_2;
+    hdma_usart1_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
+    hdma_usart1_rx.Init.PeriphInc = DMA_PINC_DISABLE;
+    hdma_usart1_rx.Init.MemInc = DMA_MINC_ENABLE;
+    hdma_usart1_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+    hdma_usart1_rx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+    hdma_usart1_rx.Init.Mode = DMA_CIRCULAR;
+    hdma_usart1_rx.Init.Priority = DMA_PRIORITY_LOW;
+    if (HAL_DMA_Init(&hdma_usart1_rx) != HAL_OK)
+    {
+      Error_Handler( );
+    }
+
+  __HAL_LINKDMA(uartHandle,hdmarx,hdma_usart1_rx);
+
   /* USER CODE BEGIN USART1_MspInit 1 */
 
   /* USER CODE END USART1_MspInit 1 */
@@ -583,6 +602,8 @@ static void USART1_MspDeInit(UART_HandleTypeDef* uartHandle)
     */
     HAL_GPIO_DeInit(GPIOB, ST_LINK_UART1_TX_Pin|ST_LINK_UART1_RX_Pin);
 
+    /* Peripheral DMA DeInit*/
+    HAL_DMA_DeInit(uartHandle->hdmarx);
   /* USER CODE BEGIN USART1_MspDeInit 1 */
 
   /* USER CODE END USART1_MspDeInit 1 */

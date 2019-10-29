@@ -75,7 +75,8 @@ uint32_t adcArd[6] ={ 0 };
 
 uint16_t checksum = 0;
 
-uint8_t serialBuffer[15] = {0};
+#define rxPacketLength 14
+uint8_t serialRxBuffer[rxPacketLength] = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -140,6 +141,8 @@ int main(void)
   HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
 
   HAL_ADC_Start_DMA(&hadc1, adcArd, 6);
+
+  HAL_UART_Receive_DMA(&huart1, serialRxBuffer, rxPacketLength);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -147,13 +150,13 @@ int main(void)
   while (1)
   {
 
-	printf("0: %li, 12: %li, 2: %li, 3: %li, 4: %li, 5: %li\n", adcArd[0], adcArd[1], adcArd[2], adcArd[3], adcArd[4], adcArd[5]);
+	//printf("0: %li, 12: %li, 2: %li, 3: %li, 4: %li, 5: %li\n", adcArd[0], adcArd[1], adcArd[2], adcArd[3], adcArd[4], adcArd[5]);
 
 
 	//  HAL_Delay(500);
     /* USER CODE END WHILE */
 
-	  MX_MEMS_Process();
+  MX_MEMS_Process();
     /* USER CODE BEGIN 3 */
 
 	  //build packet
@@ -208,26 +211,28 @@ int main(void)
 	  packetNumber%=1000;
 
 	  //all 0s 288, all 1s 294 checksum
-	  HAL_UART_Receive(&huart1, serialBuffer, sizeof(serialBuffer), 200);
+	  //HAL_UART_Receive(&huart1, serialBuffer, sizeof(serialBuffer), 200);
 
 	  int state=0;
 	  int checkSumCalc=0;
-	  for(int i=0;i<sizeof(serialBuffer); i++)
+	  for(int i=0;i<rxPacketLength; i++)
 	  {
 		  switch(i)
 		  {
-		  case 0: if(serialBuffer[i]=='#') state++; else state=0; break;
-		  case 1: if(serialBuffer[i]=='#') state++; else state=0; break;
-		  case 2: if(serialBuffer[i]=='#') state++; else state=0; break;
+		  case 0: if(serialRxBuffer[i]=='#') state++; else state=0; break;
+		  case 1: if(serialRxBuffer[i]=='#') state++; else state=0; break;
+		  case 2: if(serialRxBuffer[i]=='#') state++; else state=0; break;
 		  case 3:
 		  case 4:
 		  case 5:
 		  case 6:
 		  case 7:
-		  case 8: checksum += serialBuffer[i]; break;
-		  case 9: checkSumCalc += (serialBuffer[i]-'0')*100; break;
-		  case 10: checkSumCalc += (serialBuffer[i]-'0')*10; break;
-		  case 11: checkSumCalc += (serialBuffer[i]-'0'); break;
+		  case 8: checksum += serialRxBuffer[i]; break;
+		  case 9: checkSumCalc += (serialRxBuffer[i]-'0')*100; break;
+		  case 10: checkSumCalc += (serialRxBuffer[i]-'0')*10; break;
+		  case 11: checkSumCalc += (serialRxBuffer[i]-'0'); break;
+		  case 12:
+		  case 13: break;
 		  }
 	  }
 	  printf("checksum %03d\n", checksum);
@@ -236,12 +241,12 @@ int main(void)
 	  if(state==3)
 			  if(checksum == checkSumCalc)
 			  {
-				  HAL_GPIO_WritePin(ARD_D13_GPIO_Port, ARD_D13_Pin, serialBuffer[3]-'0');
-				  HAL_GPIO_WritePin(ARD_D12_GPIO_Port, ARD_D12_Pin, serialBuffer[4]-'0');
-				  HAL_GPIO_WritePin(ARD_D11_GPIO_Port, ARD_D11_Pin, serialBuffer[5]-'0');
-				  HAL_GPIO_WritePin(ARD_D10_GPIO_Port, ARD_D10_Pin, serialBuffer[6]-'0');
-				  HAL_GPIO_WritePin(ARD_D9_GPIO_Port, ARD_D9_Pin, serialBuffer[7]-'0');
-				  HAL_GPIO_WritePin(ARD_D8_GPIO_Port, ARD_D8_Pin, serialBuffer[8]-'0');
+				  HAL_GPIO_WritePin(ARD_D13_GPIO_Port, ARD_D13_Pin, serialRxBuffer[3]-'0');
+				  HAL_GPIO_WritePin(ARD_D12_GPIO_Port, ARD_D12_Pin, serialRxBuffer[4]-'0');
+				  HAL_GPIO_WritePin(ARD_D11_GPIO_Port, ARD_D11_Pin, serialRxBuffer[5]-'0');
+				  HAL_GPIO_WritePin(ARD_D10_GPIO_Port, ARD_D10_Pin, serialRxBuffer[6]-'0');
+				  HAL_GPIO_WritePin(ARD_D9_GPIO_Port, ARD_D9_Pin, serialRxBuffer[7]-'0');
+				  HAL_GPIO_WritePin(ARD_D8_GPIO_Port, ARD_D8_Pin, serialRxBuffer[8]-'0');
 			  }
 
 		  checksum=0;	//reset for next run
@@ -628,6 +633,9 @@ static void MX_DMA_Init(void)
   /* DMA1_Channel1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+  /* DMA1_Channel5_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel5_IRQn);
 
 }
 
