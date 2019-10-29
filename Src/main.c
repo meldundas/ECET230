@@ -66,7 +66,7 @@ float myTemperature;
 float myPressure;
 float myHumidity;
 
-#define packetLength 57
+#define packetLength 57+39
 uint8_t packet[packetLength] = {0};
 uint8_t tempString[30];
 int packetNumber=0;
@@ -162,7 +162,7 @@ int main(void)
   MX_MEMS_Process();
     /* USER CODE BEGIN 3 */
 
-	  //build packet
+	  //build enhanced packet
 
 	  strcpy(packet, "###");			//###
 
@@ -171,6 +171,15 @@ int main(void)
 
 	  sprintf(tempString, "%04X%04X%04X", (uint16_t)myAcceleration.x, (uint16_t)myAcceleration.y, (uint16_t)myAcceleration.z);
 	  strcat(packet, tempString);		//x: 0000 - FFFF y: 0000 - FFFF z: 0000 - FFFF
+
+	  sprintf(tempString, "%04X%04X%04X", (uint16_t)myAngular_velocity.x, (uint16_t)myAngular_velocity.y, (uint16_t)myAngular_velocity.z);
+	  strcat(packet, tempString);		//x: 0000 - FFFF y: 0000 - FFFF z: 0000 - FFFF
+
+	  sprintf(tempString, "%04X%04X%04X", (uint16_t)myMagnetic_field.x, (uint16_t)myMagnetic_field.y, (uint16_t)myMagnetic_field.z);
+	  strcat(packet, tempString);		//x: 0000 - FFFF y: 0000 - FFFF z: 0000 - FFFF
+
+	  sprintf(tempString, "%05.1f%05.1f%05.1f", myTemperature, myHumidity, myPressure/10);
+	  strcat(packet, tempString);
 
 	  //Arduino ARD.A3-ADC, ARD.A4-ADC, ARD.A5-ADC
 	  sprintf(tempString, "%04ld%04ld%04ld%04ld%04ld%04ld", adcArd[0], adcArd[1], adcArd[2],adcArd[3], adcArd[4], adcArd[5]);
@@ -193,7 +202,7 @@ int main(void)
 	  strcat(packet, tempString);
 
 	  //calculate checksum 000-999
-	  for(int i=3; i<51;i++)
+	  for(int i=3; i<packetLength-6;i++) //exclude ### and 3 byte checksum
 	  {
 		  checksum+=packet[i];
 	  }
