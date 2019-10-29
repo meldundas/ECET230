@@ -68,7 +68,7 @@ float myHumidity;
 
 #define packetLength 57
 uint8_t packet[packetLength] = {0};
-uint8_t tempString[15];
+uint8_t tempString[30];
 int packetNumber=0;
 
 uint32_t adcArd[6] ={ 0 };
@@ -153,7 +153,7 @@ int main(void)
 	//  HAL_Delay(500);
     /* USER CODE END WHILE */
 
-  MX_MEMS_Process();
+	MX_MEMS_Process();
     /* USER CODE BEGIN 3 */
 
 	  //build packet
@@ -182,11 +182,12 @@ int main(void)
 	  HAL_GPIO_ReadPin(ARD_D0_GPIO_Port, ARD_D0_Pin) ? strcat(tempString, "1") : strcat(tempString, "0");
 
 	  //button
-	  HAL_GPIO_ReadPin(BUTTON_EXTI13_GPIO_Port, BUTTON_EXTI13_Pin) ? strcat(tempString, "1") : strcat(tempString, "0");
+//	  HAL_GPIO_ReadPin(BUTTON_EXTI13_GPIO_Port, BUTTON_EXTI13_Pin) ? strcat(tempString, "1") : strcat(tempString, "0");
+	  BSP_PB_GetState(BUTTON_KEY) ? strcat(tempString, "1") : strcat(tempString, "0");
 	  strcat(packet, tempString);
 
 	  //calculate checksum 000-999
-	  for(int i=3; i<45;i++)
+	  for(int i=3; i<51;i++)
 	  {
 		  checksum+=packet[i];
 	  }
@@ -200,13 +201,13 @@ int main(void)
 	  strcat(packet, "\r\n");
 
 	//  printf("%s", packet);
-	  HAL_UART_Transmit(&huart1, packet, packetLength-1, 500);
+	  HAL_UART_Transmit(&huart1, packet, packetLength-1, 200);
 
 
 	  packetNumber++;
 	  packetNumber%=1000;
 
-	  HAL_UART_Receive(&huart1, serialBuffer, sizeof(serialBuffer), 500);
+	  HAL_UART_Receive(&huart1, serialBuffer, sizeof(serialBuffer), 200);
 
 	  int state=0;
 	  int checkSumCalc=0;
