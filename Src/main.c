@@ -178,7 +178,15 @@ int main(void)
 	  sprintf(tempString, "%04X%04X%04X", (uint16_t)myMagnetic_field.x, (uint16_t)myMagnetic_field.y, (uint16_t)myMagnetic_field.z);
 	  strcat(packet, tempString);		//x: 0000 - FFFF y: 0000 - FFFF z: 0000 - FFFF
 
-	  sprintf(tempString, "%05.1f%05.1f%05.1f", myTemperature, myHumidity, myPressure/10);
+	  if(myTemperature<0)
+	  {
+		  strcat(packet, "-");
+	  }
+	  else
+	  {
+		  strcat(packet, "+");
+	  }
+	  sprintf(tempString, "%05.1f%05.1f%04.0f", myTemperature, myHumidity, myPressure);
 	  strcat(packet, tempString);
 
 	  //Arduino ARD.A3-ADC, ARD.A4-ADC, ARD.A5-ADC
