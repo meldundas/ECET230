@@ -268,7 +268,7 @@ void MX_DataLogTerminal_Process(void)
     }
   }
 
-  HAL_Delay( 1000 );
+//mel  HAL_Delay( 1000 );
 }
 
 /**

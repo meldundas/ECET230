@@ -253,7 +253,7 @@ int main(void)
 		  checkSumCalc=0;
 		  state=0;
 
-	  HAL_Delay(20);
+	  HAL_Delay(100);
 	  }
 
   /* USER CODE END 3 */
