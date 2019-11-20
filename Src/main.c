@@ -79,11 +79,11 @@ uint32_t adcArd[6] ={ 0 };
 
 uint16_t checksum = 0;
 
-#define rxPacketLength 14-2
+#define rxPacketLength 30 //14-2
 //d10 -d9 removed
 uint8_t serialRxBuffer[rxPacketLength] = {0};
 
-extern bool_t txFlag;	//tx delay flag
+extern  bool_t txFlag;	//tx delay flag
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -497,9 +497,9 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 40000;
+  htim3.Init.Prescaler = 800;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 500;
+  htim3.Init.Period = 400;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
@@ -864,28 +864,80 @@ void rxPacket()
 {
 	  //all 0s 288, all 1s 294 checksum
 	  //HAL_UART_Receive(&huart1, serialBuffer, sizeof(serialBuffer), 200);
+	  int d5d6prescaler = 0;
+	  int d5d6period = 0;
+	  int d5pulse =0;
+	  int d6pulse=0;
 
 	  int state=0;
 	  int checkSumCalc=0;
-	  for(int i=0;i<rxPacketLength; i++)
+//	  for(int i=0;i<rxPacketLength; i++)
+	  for(int i=0;i<3; i++)	//test for start of packet
 	  {
 		  switch(i)
 		  {
 		  case 0: if(serialRxBuffer[i]=='#') state++; else state=0; break;
 		  case 1: if(serialRxBuffer[i]=='#') state++; else state=0; break;
 		  case 2: if(serialRxBuffer[i]=='#') state++; else state=0; break;
-		  case 3:
-		  case 4:
-		  case 5:
-		  case 6:
-		  case 7:
-		  case 8: checksum += serialRxBuffer[i]; break;
-		  case 9: checkSumCalc += (serialRxBuffer[i]-'0')*100; break;
-		  case 10: checkSumCalc += (serialRxBuffer[i]-'0')*10; break;
-		  case 11: checkSumCalc += (serialRxBuffer[i]-'0'); break;
-		  case 12:
-		  case 13: break;
+
 		  }
+	  }
+
+	  if(state==3)	//valid packet start - test valid for msg id
+	  {
+		  if(serialRxBuffer[3]=='d' || serialRxBuffer[3]=='D')
+		  {
+			  for(int i=3;i<rxPacketLength; i++)  //valid msg id - get rest of packet for digital
+			  {
+				  switch(i)
+				  {
+				  case 3:
+				  case 4:
+				  case 5:
+				  case 6:
+				  case 7: checksum += serialRxBuffer[i]; break;
+				  case 8: checkSumCalc += (serialRxBuffer[i]-'0')*100; break;
+				  case 9: checkSumCalc += (serialRxBuffer[i]-'0')*10; break;
+				  case 10: checkSumCalc += (serialRxBuffer[i]-'0'); break;
+				  case 11:
+				  case 12: break;
+				  }
+			  }
+		  }
+		  else if(serialRxBuffer[3]=='p' || serialRxBuffer[3]=='P') //valid msg id - get rest of packet for pwm
+		  {
+			  for(int i=3;i<rxPacketLength; i++)  //valid msg id - get rest of packet for digital
+			  {
+
+			  switch(i)
+			  {
+			  	  case 3:
+				  case 4:
+				  case 5:
+				  case 6:
+				  case 7:
+				  case 8:
+				  case 9:
+				  case 10:
+				  case 11:
+				  case 12:
+				  case 13:
+				  case 14:
+				  case 15:
+				  case 16: checksum += serialRxBuffer[i]; break;
+				  case 17: checkSumCalc += (serialRxBuffer[i]-'0')*100; break;
+				  case 18: checkSumCalc += (serialRxBuffer[i]-'0')*10; break;
+				  case 19: checkSumCalc += (serialRxBuffer[i]-'0'); break;
+				  case 20:
+				  case 21: break;
+
+			  }
+			  }
+		  }
+
+
+
+
 	  }
 	  printf("checksum %03d\n", checksum);
 	  printf("checkSumCalc %03d\n", checkSumCalc);
@@ -893,17 +945,45 @@ void rxPacket()
 	  if(state==3)
 			  if(checksum == checkSumCalc)
 			  {
+				  switch(serialRxBuffer[3])
+				  {
+				  case 'd':
+				  case 'D':
+
 				  HAL_GPIO_WritePin(ARD_D13_GPIO_Port, ARD_D13_Pin, serialRxBuffer[3]-'0');
 				  HAL_GPIO_WritePin(ARD_D12_GPIO_Port, ARD_D12_Pin, serialRxBuffer[4]-'0');
 				  HAL_GPIO_WritePin(ARD_D11_GPIO_Port, ARD_D11_Pin, serialRxBuffer[5]-'0');
 				 // HAL_GPIO_WritePin(ARD_D10_GPIO_Port, ARD_D10_Pin, serialRxBuffer[6]-'0');
 				 // HAL_GPIO_WritePin(ARD_D9_GPIO_Port, ARD_D9_Pin, serialRxBuffer[7]-'0');
 				  HAL_GPIO_WritePin(ARD_D8_GPIO_Port, ARD_D8_Pin, serialRxBuffer[8]-'0');
+				  break;
+
+				  case 'p':
+				  case 'P':
+					  d5d6prescaler += (serialRxBuffer[4]-'0')*100;
+					  d5d6prescaler += (serialRxBuffer[5]-'0')*10;
+					  d5d6prescaler += serialRxBuffer[6]-'0';
+
+					  d5d6period += (serialRxBuffer[7]-'0')*100;
+					  d5d6period += (serialRxBuffer[8]-'0')*10;
+					  d5d6period += serialRxBuffer[9]-'0';
+
+					  d5pulse += (serialRxBuffer[10]-'0')*100;
+					  d5pulse += (serialRxBuffer[11]-'0')*10;
+					  d5pulse += serialRxBuffer[12]-'0';
+
+					  d6pulse += (serialRxBuffer[10]-'0')*100;
+					  d6pulse += (serialRxBuffer[11]-'0')*10;
+					  d6pulse += serialRxBuffer[12]-'0';
+
+				  break;
+				  }
 			  }
 
 		  checksum=0;	//reset for next run
 		  checkSumCalc=0;
 		  state=0;
+		  serialRxBuffer[0]='/';
 }
 /* USER CODE END 4 */
 

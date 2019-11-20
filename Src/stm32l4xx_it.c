@@ -42,7 +42,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-txFlag=FALSE;
+bool_t txFlag=FALSE;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
