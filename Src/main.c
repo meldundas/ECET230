@@ -54,6 +54,8 @@ QSPI_HandleTypeDef hqspi;
 
 SPI_HandleTypeDef hspi3;
 
+TIM_HandleTypeDef htim3;
+
 UART_HandleTypeDef huart3;
 
 PCD_HandleTypeDef hpcd_USB_OTG_FS;
@@ -66,7 +68,9 @@ float myTemperature;
 float myPressure;
 float myHumidity;
 
-#define packetLength 57+39
+#define packetLength 57+39-3
+//96 0-95
+//-3 remove d5 d6 d7
 uint8_t packet[packetLength] = {0};
 uint8_t tempString[30];
 int packetNumber=0;
@@ -75,8 +79,11 @@ uint32_t adcArd[6] ={ 0 };
 
 uint16_t checksum = 0;
 
-#define rxPacketLength 14
+#define rxPacketLength 14-2
+//d10 -d9 removed
 uint8_t serialRxBuffer[rxPacketLength] = {0};
+
+extern bool_t txFlag;	//tx delay flag
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -89,8 +96,10 @@ static void MX_QUADSPI_Init(void);
 static void MX_SPI3_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_USB_OTG_FS_PCD_Init(void);
+static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
-
+void buildPacket();
+void rxPacket();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -134,6 +143,7 @@ int main(void)
   MX_SPI3_Init();
   MX_USART3_UART_Init();
   MX_USB_OTG_FS_PCD_Init();
+  MX_TIM3_Init();
   MX_MEMS_Init();
   /* USER CODE BEGIN 2 */
 
@@ -151,130 +161,28 @@ int main(void)
   {
 
 	//printf("0: %li, 12: %li, 2: %li, 3: %li, 4: %li, 5: %li\n", adcArd[0], adcArd[1], adcArd[2], adcArd[3], adcArd[4], adcArd[5]);
-	printf("gyro: %04X %04X %04X\n", (uint16_t)myAngular_velocity.x, (uint16_t)myAngular_velocity.y, (uint16_t)myAngular_velocity.z);
-	printf("mag: %04X %04X %04X\n", (uint16_t)myMagnetic_field.x, (uint16_t)myMagnetic_field.y, (uint16_t)myMagnetic_field.z);
-	printf("temp: %05.1f\n", myTemperature);
-	printf("hum : %05.1f\n", myHumidity);
-	printf("pres: %05.1f\n", myPressure/10);
+//	printf("gyro: %04X %04X %04X\n", (uint16_t)myAngular_velocity.x, (uint16_t)myAngular_velocity.y, (uint16_t)myAngular_velocity.z);
+//	printf("mag: %04X %04X %04X\n", (uint16_t)myMagnetic_field.x, (uint16_t)myMagnetic_field.y, (uint16_t)myMagnetic_field.z);
+//	printf("temp: %05.1f\n", myTemperature);
+//	printf("hum : %05.1f\n", myHumidity);
+//	printf("pres: %05.1f\n", myPressure/10);
 	//  HAL_Delay(500);
     /* USER CODE END WHILE */
 
   MX_MEMS_Process();
     /* USER CODE BEGIN 3 */
 
-	  //build enhanced packet
-
-	  strcpy(packet, "###");			//###
-
-	  sprintf(tempString, "%03d", packetNumber);
-	  strcat(packet, tempString);		//000 - 999
-
-	  sprintf(tempString, "%04X%04X%04X", (uint16_t)myAcceleration.x, (uint16_t)myAcceleration.y, (uint16_t)myAcceleration.z);
-	  strcat(packet, tempString);		//x: 0000 - FFFF y: 0000 - FFFF z: 0000 - FFFF
-
-	  sprintf(tempString, "%04X%04X%04X", (uint16_t)myAngular_velocity.x, (uint16_t)myAngular_velocity.y, (uint16_t)myAngular_velocity.z);
-	  strcat(packet, tempString);		//x: 0000 - FFFF y: 0000 - FFFF z: 0000 - FFFF
-
-	  sprintf(tempString, "%04X%04X%04X", (uint16_t)myMagnetic_field.x, (uint16_t)myMagnetic_field.y, (uint16_t)myMagnetic_field.z);
-	  strcat(packet, tempString);		//x: 0000 - FFFF y: 0000 - FFFF z: 0000 - FFFF
-
-	  if(myTemperature<0)
-	  {
-		  strcat(packet, "-");
-	  }
-	  else
-	  {
-		  strcat(packet, "+");
-	  }
-	  sprintf(tempString, "%05.1f%05.1f%04.0f", myTemperature, myHumidity, myPressure);
-	  strcat(packet, tempString);
-
-	  //Arduino ARD.A3-ADC, ARD.A4-ADC, ARD.A5-ADC
-	  sprintf(tempString, "%04ld%04ld%04ld%04ld%04ld%04ld", adcArd[0], adcArd[1], adcArd[2],adcArd[3], adcArd[4], adcArd[5]);
-	  strcat(packet, tempString);		//0-4095
-	//  printf("%s\n", tempString);
-
-	  //Arduino digital inputs
-	  HAL_GPIO_ReadPin(ARD_D7_GPIO_Port, ARD_D7_Pin) ? strcpy(tempString, "1") : strcpy(tempString, "0");
-	  HAL_GPIO_ReadPin(ARD_D6_GPIO_Port, ARD_D6_Pin) ? strcat(tempString, "1") : strcat(tempString, "0");
-	  HAL_GPIO_ReadPin(ARD_D5_GPIO_Port, ARD_D5_Pin) ? strcat(tempString, "1") : strcat(tempString, "0");
-	  HAL_GPIO_ReadPin(ARD_D4_GPIO_Port, ARD_D4_Pin) ? strcat(tempString, "1") : strcat(tempString, "0");
-	  HAL_GPIO_ReadPin(ARD_D3_GPIO_Port, ARD_D3_Pin) ? strcat(tempString, "1") : strcat(tempString, "0");
-	  HAL_GPIO_ReadPin(ARD_D2_GPIO_Port, ARD_D2_Pin) ? strcat(tempString, "1") : strcat(tempString, "0");
-	  HAL_GPIO_ReadPin(ARD_D1_GPIO_Port, ARD_D1_Pin) ? strcat(tempString, "1") : strcat(tempString, "0");
-	  HAL_GPIO_ReadPin(ARD_D0_GPIO_Port, ARD_D0_Pin) ? strcat(tempString, "1") : strcat(tempString, "0");
-
-	  //button
-//	  HAL_GPIO_ReadPin(BUTTON_EXTI13_GPIO_Port, BUTTON_EXTI13_Pin) ? strcat(tempString, "1") : strcat(tempString, "0");
-	  BSP_PB_GetState(BUTTON_KEY) ? strcat(tempString, "1") : strcat(tempString, "0");
-	  strcat(packet, tempString);
-
-	  //calculate checksum 000-999
-	  for(int i=3; i<packetLength-6;i++) //exclude ### and 3 byte checksum
-	  {
-		  checksum+=packet[i];
-	  }
-
-	  sprintf(tempString, "%03d", checksum%=1000);
-	  strcat(packet, tempString);
-
-	  checksum=0;	//reset for next run
-
-	  // CRLF
-	  strcat(packet, "\r\n");
-
-	//  printf("%s", packet);
-	  HAL_UART_Transmit(&huart1, packet, packetLength-1, 100);
+  if(txFlag)
+    {
+	  buildPacket();
+	  rxPacket();
+    }
 
 
-	  packetNumber++;
-	  packetNumber%=1000;
 
-	  //all 0s 288, all 1s 294 checksum
-	  //HAL_UART_Receive(&huart1, serialBuffer, sizeof(serialBuffer), 200);
 
-	  int state=0;
-	  int checkSumCalc=0;
-	  for(int i=0;i<rxPacketLength; i++)
-	  {
-		  switch(i)
-		  {
-		  case 0: if(serialRxBuffer[i]=='#') state++; else state=0; break;
-		  case 1: if(serialRxBuffer[i]=='#') state++; else state=0; break;
-		  case 2: if(serialRxBuffer[i]=='#') state++; else state=0; break;
-		  case 3:
-		  case 4:
-		  case 5:
-		  case 6:
-		  case 7:
-		  case 8: checksum += serialRxBuffer[i]; break;
-		  case 9: checkSumCalc += (serialRxBuffer[i]-'0')*100; break;
-		  case 10: checkSumCalc += (serialRxBuffer[i]-'0')*10; break;
-		  case 11: checkSumCalc += (serialRxBuffer[i]-'0'); break;
-		  case 12:
-		  case 13: break;
-		  }
-	  }
-	  printf("checksum %03d\n", checksum);
-	  printf("checkSumCalc %03d\n", checkSumCalc);
 
-	  if(state==3)
-			  if(checksum == checkSumCalc)
-			  {
-				  HAL_GPIO_WritePin(ARD_D13_GPIO_Port, ARD_D13_Pin, serialRxBuffer[3]-'0');
-				  HAL_GPIO_WritePin(ARD_D12_GPIO_Port, ARD_D12_Pin, serialRxBuffer[4]-'0');
-				  HAL_GPIO_WritePin(ARD_D11_GPIO_Port, ARD_D11_Pin, serialRxBuffer[5]-'0');
-				  HAL_GPIO_WritePin(ARD_D10_GPIO_Port, ARD_D10_Pin, serialRxBuffer[6]-'0');
-				  HAL_GPIO_WritePin(ARD_D9_GPIO_Port, ARD_D9_Pin, serialRxBuffer[7]-'0');
-				  HAL_GPIO_WritePin(ARD_D8_GPIO_Port, ARD_D8_Pin, serialRxBuffer[8]-'0');
-			  }
-
-		  checksum=0;	//reset for next run
-		  checkSumCalc=0;
-		  state=0;
-
-	  HAL_Delay(20);
-	  }
+	}
 
   /* USER CODE END 3 */
 }
@@ -571,6 +479,59 @@ static void MX_SPI3_Init(void)
 }
 
 /**
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
+
+  /* USER CODE BEGIN TIM3_Init 0 */
+
+  /* USER CODE END TIM3_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM3_Init 1 */
+
+  /* USER CODE END TIM3_Init 1 */
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 40000;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 500;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 250;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM3_Init 2 */
+
+  /* USER CODE END TIM3_Init 2 */
+  HAL_TIM_MspPostInit(&htim3);
+
+}
+
+/**
   * @brief USART3 Initialization Function
   * @param None
   * @retval None
@@ -735,11 +696,11 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : ARD_D3_Pin ARD_D6_Pin ARD_D5_Pin */
-  GPIO_InitStruct.Pin = ARD_D3_Pin|ARD_D6_Pin|ARD_D5_Pin;
+  /*Configure GPIO pin : ARD_D3_Pin */
+  GPIO_InitStruct.Pin = ARD_D3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  HAL_GPIO_Init(ARD_D3_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : ARD_D8_Pin ISM43362_BOOT0_Pin ISM43362_WAKEUP_Pin LED2_Pin 
                            SPSGRF_915_SDN_Pin SPSGRF_915_SPI3_CSN_Pin */
@@ -822,7 +783,128 @@ int __io_putchar(int ch)
 	return 0;
 }
 
+void buildPacket()
+{
+	  //build enhanced packet
 
+	  strcpy(packet, "###");			//###
+
+	  sprintf(tempString, "%03d", packetNumber);
+	  strcat(packet, tempString);		//000 - 999
+
+	  sprintf(tempString, "%04X%04X%04X", (uint16_t)myAcceleration.x, (uint16_t)myAcceleration.y, (uint16_t)myAcceleration.z);
+	  strcat(packet, tempString);		//x: 0000 - FFFF y: 0000 - FFFF z: 0000 - FFFF
+
+	  sprintf(tempString, "%04X%04X%04X", (uint16_t)myAngular_velocity.x, (uint16_t)myAngular_velocity.y, (uint16_t)myAngular_velocity.z);
+	  strcat(packet, tempString);		//x: 0000 - FFFF y: 0000 - FFFF z: 0000 - FFFF
+
+	  sprintf(tempString, "%04X%04X%04X", (uint16_t)myMagnetic_field.x, (uint16_t)myMagnetic_field.y, (uint16_t)myMagnetic_field.z);
+	  strcat(packet, tempString);		//x: 0000 - FFFF y: 0000 - FFFF z: 0000 - FFFF
+
+	  if(myTemperature<0)
+	  {
+		  strcat(packet, "-");
+	  }
+	  else
+	  {
+		  strcat(packet, "+");
+	  }
+	  sprintf(tempString, "%05.1f%05.1f%04.0f", myTemperature, myHumidity, myPressure);
+	  strcat(packet, tempString);
+
+	  //Arduino ARD.A3-ADC, ARD.A4-ADC, ARD.A5-ADC
+	  sprintf(tempString, "%04ld%04ld%04ld%04ld%04ld%04ld", adcArd[0], adcArd[1], adcArd[2],adcArd[3], adcArd[4], adcArd[5]);
+	  strcat(packet, tempString);		//0-4095
+	//  printf("%s\n", tempString);
+
+	  //Arduino digital inputs
+	  //HAL_GPIO_ReadPin(ARD_D7_GPIO_Port, ARD_D7_Pin) ? strcpy(tempString, "1") : strcpy(tempString, "0");
+	  //HAL_GPIO_ReadPin(ARD_D6_GPIO_Port, ARD_D6_Pin) ? strcat(tempString, "1") : strcat(tempString, "0");
+	  //HAL_GPIO_ReadPin(ARD_D5_GPIO_Port, ARD_D5_Pin) ? strcat(tempString, "1") : strcat(tempString, "0");
+
+	  HAL_GPIO_ReadPin(ARD_D4_GPIO_Port, ARD_D4_Pin) ? strcpy(tempString, "1") : strcpy(tempString, "0");
+	  HAL_GPIO_ReadPin(ARD_D3_GPIO_Port, ARD_D3_Pin) ? strcat(tempString, "1") : strcat(tempString, "0");
+	  HAL_GPIO_ReadPin(ARD_D2_GPIO_Port, ARD_D2_Pin) ? strcat(tempString, "1") : strcat(tempString, "0");
+	  HAL_GPIO_ReadPin(ARD_D1_GPIO_Port, ARD_D1_Pin) ? strcat(tempString, "1") : strcat(tempString, "0");
+	  HAL_GPIO_ReadPin(ARD_D0_GPIO_Port, ARD_D0_Pin) ? strcat(tempString, "1") : strcat(tempString, "0");
+
+	  //button
+//	  HAL_GPIO_ReadPin(BUTTON_EXTI13_GPIO_Port, BUTTON_EXTI13_Pin) ? strcat(tempString, "1") : strcat(tempString, "0");
+	  BSP_PB_GetState(BUTTON_KEY) ? strcat(tempString, "1") : strcat(tempString, "0");
+	  strcat(packet, tempString);
+
+	  //calculate checksum 000-999
+	  for(int i=3; i<packetLength-6;i++) //exclude ### and 3 byte checksum
+	  {
+		  checksum+=packet[i];
+	  }
+
+	  sprintf(tempString, "%03d", checksum%=1000);
+	  strcat(packet, tempString);
+
+	  checksum=0;	//reset for next run
+
+	  // CRLF
+	  strcat(packet, "\r\n");
+
+	//  printf("%s", packet);
+	  HAL_UART_Transmit(&huart1, packet, packetLength-1, 100);
+
+
+	  packetNumber++;
+	  packetNumber%=1000;
+
+
+
+	  //HAL_Delay(20);
+		  txFlag=FALSE;
+}
+
+void rxPacket()
+{
+	  //all 0s 288, all 1s 294 checksum
+	  //HAL_UART_Receive(&huart1, serialBuffer, sizeof(serialBuffer), 200);
+
+	  int state=0;
+	  int checkSumCalc=0;
+	  for(int i=0;i<rxPacketLength; i++)
+	  {
+		  switch(i)
+		  {
+		  case 0: if(serialRxBuffer[i]=='#') state++; else state=0; break;
+		  case 1: if(serialRxBuffer[i]=='#') state++; else state=0; break;
+		  case 2: if(serialRxBuffer[i]=='#') state++; else state=0; break;
+		  case 3:
+		  case 4:
+		  case 5:
+		  case 6:
+		  case 7:
+		  case 8: checksum += serialRxBuffer[i]; break;
+		  case 9: checkSumCalc += (serialRxBuffer[i]-'0')*100; break;
+		  case 10: checkSumCalc += (serialRxBuffer[i]-'0')*10; break;
+		  case 11: checkSumCalc += (serialRxBuffer[i]-'0'); break;
+		  case 12:
+		  case 13: break;
+		  }
+	  }
+	  printf("checksum %03d\n", checksum);
+	  printf("checkSumCalc %03d\n", checkSumCalc);
+
+	  if(state==3)
+			  if(checksum == checkSumCalc)
+			  {
+				  HAL_GPIO_WritePin(ARD_D13_GPIO_Port, ARD_D13_Pin, serialRxBuffer[3]-'0');
+				  HAL_GPIO_WritePin(ARD_D12_GPIO_Port, ARD_D12_Pin, serialRxBuffer[4]-'0');
+				  HAL_GPIO_WritePin(ARD_D11_GPIO_Port, ARD_D11_Pin, serialRxBuffer[5]-'0');
+				 // HAL_GPIO_WritePin(ARD_D10_GPIO_Port, ARD_D10_Pin, serialRxBuffer[6]-'0');
+				 // HAL_GPIO_WritePin(ARD_D9_GPIO_Port, ARD_D9_Pin, serialRxBuffer[7]-'0');
+				  HAL_GPIO_WritePin(ARD_D8_GPIO_Port, ARD_D8_Pin, serialRxBuffer[8]-'0');
+			  }
+
+		  checksum=0;	//reset for next run
+		  checkSumCalc=0;
+		  state=0;
+}
 /* USER CODE END 4 */
 
 /**

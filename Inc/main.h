@@ -51,6 +51,8 @@ extern "C" {
 
 /* USER CODE END EM */
 
+void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
+
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
 
@@ -224,7 +226,7 @@ void Error_Handler(void);
 #define ISM43362_DRDY_EXTI1_Pin GPIO_PIN_1
 #define ISM43362_DRDY_EXTI1_GPIO_Port GPIOE
 /* USER CODE BEGIN Private defines */
-
+typedef enum{FALSE,TRUE}bool_t;
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

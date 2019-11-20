@@ -244,7 +244,7 @@ int32_t BSP_PB_Init(Button_TypeDef Button, ButtonMode_TypeDef ButtonMode)
   else /* (ButtonMode == BUTTON_MODE_EXTI) */
   {      
     /* Configure Button pin as input with External interrupt */    
-    gpio_init_structure.Mode = GPIO_MODE_IT_FALLING; //mel GPIO_MODE_IT_RISING;
+    gpio_init_structure.Mode = GPIO_MODE_IT_RISING;
     
     HAL_GPIO_Init(BUTTON_PORT[Button], &gpio_init_structure);
     
@@ -536,7 +536,7 @@ int32_t BSP_COM_SelectLogPort(COM_TypeDef COM)
 //  (void)HAL_UART_Transmit(&hcom_uart[COM_ActiveLogPort], (uint8_t *)&ch, 1, COM_POLL_TIMEOUT);
 //  return ch;
 //}
-#endif /* USE_COM_LOG */ 
+#endif /* USE_COM_LOG */
 /**
  * @brief  Initializes USART1 MSP.
  * @param  huart USART1 handle
