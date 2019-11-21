@@ -862,8 +862,14 @@ void buildPacket()
 
 void rxPacket()
 {
+
+
 	  //all 0s 288, all 1s 294 checksum
 	  //HAL_UART_Receive(&huart1, serialBuffer, sizeof(serialBuffer), 200);
+
+	  TIM_OC_InitTypeDef sConfigOC = {0};
+
+
 	  int d5d6prescaler = 0;
 	  int d5d6period = 0;
 	  int d5pulse =0;
@@ -923,13 +929,12 @@ void rxPacket()
 				  case 12:
 				  case 13:
 				  case 14:
-				  case 15:
-				  case 16: checksum += serialRxBuffer[i]; break;
-				  case 17: checkSumCalc += (serialRxBuffer[i]-'0')*100; break;
-				  case 18: checkSumCalc += (serialRxBuffer[i]-'0')*10; break;
-				  case 19: checkSumCalc += (serialRxBuffer[i]-'0'); break;
-				  case 20:
-				  case 21: break;
+				  case 15: checksum += serialRxBuffer[i]; break;
+				  case 16: checkSumCalc += (serialRxBuffer[i]-'0')*100; break;
+				  case 17: checkSumCalc += (serialRxBuffer[i]-'0')*10; break;
+				  case 18: checkSumCalc += (serialRxBuffer[i]-'0'); break;
+				  case 19:
+				  case 20: break;
 
 			  }
 			  }
@@ -939,8 +944,12 @@ void rxPacket()
 
 
 	  }
+
+	  if(checksum)
+	  {
 	  printf("checksum %03d\n", checksum);
 	  printf("checkSumCalc %03d\n", checkSumCalc);
+	  }
 
 	  if(state==3)
 			  if(checksum == checkSumCalc)
@@ -960,21 +969,61 @@ void rxPacket()
 
 				  case 'p':
 				  case 'P':
-					  d5d6prescaler += (serialRxBuffer[4]-'0')*100;
+					  d5d6prescaler += (serialRxBuffer[4]-'0')*100;		//tmr3 ch1 and 4 prescaler
 					  d5d6prescaler += (serialRxBuffer[5]-'0')*10;
 					  d5d6prescaler += serialRxBuffer[6]-'0';
 
-					  d5d6period += (serialRxBuffer[7]-'0')*100;
+					  d5d6period += (serialRxBuffer[7]-'0')*100;		//tmr3 ch1 and 4 period
 					  d5d6period += (serialRxBuffer[8]-'0')*10;
 					  d5d6period += serialRxBuffer[9]-'0';
 
-					  d5pulse += (serialRxBuffer[10]-'0')*100;
+					  d5pulse += (serialRxBuffer[10]-'0')*100;			//ch1 pulsewidth
 					  d5pulse += (serialRxBuffer[11]-'0')*10;
 					  d5pulse += serialRxBuffer[12]-'0';
 
-					  d6pulse += (serialRxBuffer[10]-'0')*100;
-					  d6pulse += (serialRxBuffer[11]-'0')*10;
-					  d6pulse += serialRxBuffer[12]-'0';
+					  d6pulse += (serialRxBuffer[13]-'0')*100;			//ch4 pulsewidth
+					  d6pulse += (serialRxBuffer[14]-'0')*10;
+					  d6pulse += serialRxBuffer[15]-'0';
+
+					  htim3.Init.Prescaler = d5d6prescaler;				//update tmr3 info
+					  htim3.Init.Period = d5d6period;
+					  if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
+					    {
+					      Error_Handler();
+					    }
+
+					  sConfigOC.OCMode = TIM_OCMODE_PWM1;				//update ch1 pulsewidth
+					  sConfigOC.Pulse = d5pulse;
+					  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+					  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+					  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+					  {
+					    Error_Handler();
+					  }
+
+					  sConfigOC.Pulse = d6pulse;						//update ch4 pulsewidth
+					  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
+					  {
+					    Error_Handler();
+					  }
+
+					  if(d5d6period && d5pulse)		//if there is a period and pulsewidth then start pwm ch1
+					  {
+						  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+					  }
+					  else
+					  {
+						  HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_1);
+					  }
+
+					  if(d5d6period && d6pulse)		//if there is a period and pulsewidth then start pwm ch4
+					  {
+						  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);
+					  }
+					  else
+					  {
+						  HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_4);
+					  }
 
 				  break;
 				  }
@@ -983,7 +1032,7 @@ void rxPacket()
 		  checksum=0;	//reset for next run
 		  checkSumCalc=0;
 		  state=0;
-		  serialRxBuffer[0]='/';
+	//	  serialRxBuffer[0]='/';
 }
 /* USER CODE END 4 */
 
