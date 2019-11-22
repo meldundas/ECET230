@@ -79,7 +79,7 @@ uint32_t adcArd[6] ={ 0 };
 
 uint16_t checksum = 0;
 
-#define rxPacketLength 30 //14-2
+#define rxPacketLength 24 //14-2
 //d10 -d9 removed
 uint8_t serialRxBuffer[rxPacketLength] = {0};
 
@@ -877,156 +877,112 @@ void rxPacket()
 
 	  int state=0;
 	  int checkSumCalc=0;
-//	  for(int i=0;i<rxPacketLength; i++)
-	  for(int i=0;i<3; i++)	//test for start of packet
+
+	  for(int i=0;i<rxPacketLength; i++)	//test for start of packet
 	  {
 		  switch(i)
 		  {
 		  case 0: if(serialRxBuffer[i]=='#') state++; else state=0; break;
 		  case 1: if(serialRxBuffer[i]=='#') state++; else state=0; break;
 		  case 2: if(serialRxBuffer[i]=='#') state++; else state=0; break;
-
+		  case 3://D13
+		  case 4://D12
+		  case 5://D11
+		  case 6://D8
+		  case 7://d5 6 prescaler
+		  case 8:
+		  case 9:
+		  case 10://d5 6 period
+		  case 11:
+		  case 12:
+		  case 13://d5 pulsewidth
+		  case 14:
+		  case 15:
+		  case 16://d6 pulsewidth
+		  case 17:
+		  case 18: checksum += serialRxBuffer[i]; break;
+		  case 19: checkSumCalc += (serialRxBuffer[i]-'0')*100; break;
+		  case 20: checkSumCalc += (serialRxBuffer[i]-'0')*10; break;
+		  case 21: checkSumCalc += (serialRxBuffer[i]-'0'); break;
+		  case 22:
+		  case 23: break;
 		  }
-	  }
-
-	  if(state==3)	//valid packet start - test valid for msg id
-	  {
-		  if(serialRxBuffer[3]=='d' || serialRxBuffer[3]=='D')
-		  {
-			  for(int i=3;i<rxPacketLength; i++)  //valid msg id - get rest of packet for digital
-			  {
-				  switch(i)
-				  {
-				  case 3:
-				  case 4:
-				  case 5:
-				  case 6:
-				  case 7: checksum += serialRxBuffer[i]; break;
-				  case 8: checkSumCalc += (serialRxBuffer[i]-'0')*100; break;
-				  case 9: checkSumCalc += (serialRxBuffer[i]-'0')*10; break;
-				  case 10: checkSumCalc += (serialRxBuffer[i]-'0'); break;
-				  case 11:
-				  case 12: break;
-				  }
-			  }
-		  }
-		  else if(serialRxBuffer[3]=='p' || serialRxBuffer[3]=='P') //valid msg id - get rest of packet for pwm
-		  {
-			  for(int i=3;i<rxPacketLength; i++)  //valid msg id - get rest of packet for digital
-			  {
-
-			  switch(i)
-			  {
-			  	  case 3:
-				  case 4:
-				  case 5:
-				  case 6:
-				  case 7:
-				  case 8:
-				  case 9:
-				  case 10:
-				  case 11:
-				  case 12:
-				  case 13:
-				  case 14:
-				  case 15: checksum += serialRxBuffer[i]; break;
-				  case 16: checkSumCalc += (serialRxBuffer[i]-'0')*100; break;
-				  case 17: checkSumCalc += (serialRxBuffer[i]-'0')*10; break;
-				  case 18: checkSumCalc += (serialRxBuffer[i]-'0'); break;
-				  case 19:
-				  case 20: break;
-
-			  }
-			  }
-		  }
-
-
-
-
 	  }
 
 	  if(checksum)
 	  {
-	  printf("checksum %03d\n", checksum);
-	  printf("checkSumCalc %03d\n", checkSumCalc);
+	  printf("checksum %03d\n", checksum);	//calculated from incoming bytes
+	  printf("checkSumCalc %03d\n", checkSumCalc); //senders calculated checksum
 	  }
 
 	  if(state==3)
 			  if(checksum == checkSumCalc)
 			  {
-				  switch(serialRxBuffer[3])
-				  {
-				  case 'd':
-				  case 'D':
-
 				  HAL_GPIO_WritePin(ARD_D13_GPIO_Port, ARD_D13_Pin, serialRxBuffer[3]-'0');
 				  HAL_GPIO_WritePin(ARD_D12_GPIO_Port, ARD_D12_Pin, serialRxBuffer[4]-'0');
 				  HAL_GPIO_WritePin(ARD_D11_GPIO_Port, ARD_D11_Pin, serialRxBuffer[5]-'0');
 				 // HAL_GPIO_WritePin(ARD_D10_GPIO_Port, ARD_D10_Pin, serialRxBuffer[6]-'0');
 				 // HAL_GPIO_WritePin(ARD_D9_GPIO_Port, ARD_D9_Pin, serialRxBuffer[7]-'0');
-				  HAL_GPIO_WritePin(ARD_D8_GPIO_Port, ARD_D8_Pin, serialRxBuffer[8]-'0');
-				  break;
+				  HAL_GPIO_WritePin(ARD_D8_GPIO_Port, ARD_D8_Pin, serialRxBuffer[6]-'0');
 
-				  case 'p':
-				  case 'P':
-					  d5d6prescaler += (serialRxBuffer[4]-'0')*100;		//tmr3 ch1 and 4 prescaler
-					  d5d6prescaler += (serialRxBuffer[5]-'0')*10;
-					  d5d6prescaler += serialRxBuffer[6]-'0';
+				  d5d6prescaler += (serialRxBuffer[7]-'0')*100;		//tmr3 ch1 and 4 prescaler
+				  d5d6prescaler += (serialRxBuffer[8]-'0')*10;
+				  d5d6prescaler += serialRxBuffer[9]-'0';
 
-					  d5d6period += (serialRxBuffer[7]-'0')*100;		//tmr3 ch1 and 4 period
-					  d5d6period += (serialRxBuffer[8]-'0')*10;
-					  d5d6period += serialRxBuffer[9]-'0';
+				  d5d6period += (serialRxBuffer[10]-'0')*100;		//tmr3 ch1 and 4 period
+				  d5d6period += (serialRxBuffer[11]-'0')*10;
+				  d5d6period += serialRxBuffer[12]-'0';
 
-					  d5pulse += (serialRxBuffer[10]-'0')*100;			//ch1 pulsewidth
-					  d5pulse += (serialRxBuffer[11]-'0')*10;
-					  d5pulse += serialRxBuffer[12]-'0';
+				  d5pulse += (serialRxBuffer[13]-'0')*100;			//ch1 pulsewidth
+				  d5pulse += (serialRxBuffer[14]-'0')*10;
+				  d5pulse += serialRxBuffer[15]-'0';
 
-					  d6pulse += (serialRxBuffer[13]-'0')*100;			//ch4 pulsewidth
-					  d6pulse += (serialRxBuffer[14]-'0')*10;
-					  d6pulse += serialRxBuffer[15]-'0';
+				  d6pulse += (serialRxBuffer[16]-'0')*100;			//ch4 pulsewidth
+				  d6pulse += (serialRxBuffer[17]-'0')*10;
+				  d6pulse += serialRxBuffer[18]-'0';
 
-					  htim3.Init.Prescaler = d5d6prescaler;				//update tmr3 info
-					  htim3.Init.Period = d5d6period;
-					  if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
-					    {
-					      Error_Handler();
-					    }
-
-					  sConfigOC.OCMode = TIM_OCMODE_PWM1;				//update ch1 pulsewidth
-					  sConfigOC.Pulse = d5pulse;
-					  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-					  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-					  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
-					  {
-					    Error_Handler();
-					  }
-
-					  sConfigOC.Pulse = d6pulse;						//update ch4 pulsewidth
-					  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
-					  {
-					    Error_Handler();
-					  }
-
-					  if(d5d6period && d5pulse)		//if there is a period and pulsewidth then start pwm ch1
-					  {
-						  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-					  }
-					  else
-					  {
-						  HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_1);
-					  }
-
-					  if(d5d6period && d6pulse)		//if there is a period and pulsewidth then start pwm ch4
-					  {
-						  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);
-					  }
-					  else
-					  {
-						  HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_4);
-					  }
-
-				  break;
+				  htim3.Init.Prescaler = d5d6prescaler;				//update tmr3 info
+				  htim3.Init.Period = d5d6period;
+				  if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
+				  {
+				      Error_Handler();
 				  }
+
+				  sConfigOC.OCMode = TIM_OCMODE_PWM1;				//update ch1 pulsewidth
+				  sConfigOC.Pulse = d5pulse;
+				  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+				  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+				  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+				  {
+				    Error_Handler();
+				  }
+
+				  sConfigOC.Pulse = d6pulse;						//update ch4 pulsewidth
+				  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
+				  {
+					  Error_Handler();
+				  }
+
+				  if(d5d6period && d5pulse)		//if there is a period and pulsewidth then start pwm ch1
+				  {
+					  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+				  }
+				  else
+				  {
+					  HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_1);
+				  }
+
+				  if(d5d6period && d6pulse)		//if there is a period and pulsewidth then start pwm ch4
+				  {
+					  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);
+				  }
+				  else
+				  {
+					  HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_4);
+				  }
+
+
+
 			  }
 
 		  checksum=0;	//reset for next run
