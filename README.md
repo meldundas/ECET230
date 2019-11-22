@@ -31,7 +31,7 @@ The ARM will send the following packet once each time interval. Default time int
 * The next 4 characters are the analog ADC ARDA4 value:	0000 to 4095
 * The next 4 characters are the analog ADC ARDA5 value:	0000 to 4095
 
-* The next 8 characters are for the input state of the I/O	00000000 to 11111111 of Input pins (Arduino D07 to D00)
+* The next 5 characters are for the input state of the I/O	00000 to 11111 of Input pins (Arduino D4 to D0)
 
 * The blue button (PA0)		value:		0 or 1
 
@@ -41,6 +41,20 @@ The ARM will send the following packet once each time interval. Default time int
 
 The GUI can send the following to the ARM at any time you require for you project. The packet will be ASCII values.
 * The start of packet is 3 # signs:					###
-* The next 6 characters are for the output state of the I/O	000000 to 111111 of Output pins (Arduino D13 to D08)
-* The last three characters are the checksum:			000 to 999
+* The next 4 characters are for the output state of the I/O	0000 to 1111 of Output pins
+ (Arduino D13, D12, D11, D08)
+ 
+*3 characters  d5d6prescaler  	value: 000-999
+*3 characters  d5d6period		value: 000-999
+*3 characters  d5pulse			value: 000-999
+*3 characters  d6pulse			value: 000-999
+ 
+*3 characters  d9d10prescaler  	value: 000-999
+*3 characters  d9d10period		value: 000-999
+*3 characters  d9pulse			value: 000-999
+*3 characters  d10pulse			value: 000-999 
+ 
+*3 character checksum:			value: 000-999
+
+*2 characters /r/n
 

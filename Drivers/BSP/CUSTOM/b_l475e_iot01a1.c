@@ -232,7 +232,7 @@ int32_t BSP_PB_Init(Button_TypeDef Button, ButtonMode_TypeDef ButtonMode)
   /* Enable the BUTTON clock*/ 
   USER_BUTTON_GPIO_CLK_ENABLE();
   gpio_init_structure.Pin = BUTTON_PIN [Button];
-  gpio_init_structure.Pull = GPIO_NOPULL; //mel GPIO_PULLDOWN;
+  gpio_init_structure.Pull = GPIO_NOPULL; //GPIO_PULLDOWN;
   gpio_init_structure.Speed = GPIO_SPEED_FREQ_HIGH;
   
   if(ButtonMode == BUTTON_MODE_GPIO)
@@ -527,6 +527,7 @@ int32_t BSP_COM_SelectLogPort(COM_TypeDef COM)
   return BSP_ERROR_NONE; 
 }
 
+//mel
 //#ifdef __GNUC__
 // int __io_putchar (int ch)
 //#else
@@ -536,7 +537,7 @@ int32_t BSP_COM_SelectLogPort(COM_TypeDef COM)
 //  (void)HAL_UART_Transmit(&hcom_uart[COM_ActiveLogPort], (uint8_t *)&ch, 1, COM_POLL_TIMEOUT);
 //  return ch;
 //}
-#endif /* USE_COM_LOG */
+#endif /* USE_COM_LOG */ 
 /**
  * @brief  Initializes USART1 MSP.
  * @param  huart USART1 handle

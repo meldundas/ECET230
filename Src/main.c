@@ -54,6 +54,7 @@ QSPI_HandleTypeDef hqspi;
 
 SPI_HandleTypeDef hspi3;
 
+TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 
 UART_HandleTypeDef huart3;
@@ -79,7 +80,7 @@ uint32_t adcArd[6] ={ 0 };
 
 uint16_t checksum = 0;
 
-#define rxPacketLength 24 //14-2
+#define rxPacketLength 36 //24 //14-2
 //d10 -d9 removed
 uint8_t serialRxBuffer[rxPacketLength] = {0};
 
@@ -96,6 +97,7 @@ static void MX_QUADSPI_Init(void);
 static void MX_SPI3_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_USB_OTG_FS_PCD_Init(void);
+static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 void buildPacket();
@@ -143,6 +145,7 @@ int main(void)
   MX_SPI3_Init();
   MX_USART3_UART_Init();
   MX_USB_OTG_FS_PCD_Init();
+  MX_TIM2_Init();
   MX_TIM3_Init();
   MX_MEMS_Init();
   /* USER CODE BEGIN 2 */
@@ -479,6 +482,59 @@ static void MX_SPI3_Init(void)
 }
 
 /**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 80;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 500;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
+  HAL_TIM_MspPostInit(&htim2);
+
+}
+
+/**
   * @brief TIM3 Initialization Function
   * @param None
   * @retval None
@@ -497,9 +553,9 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 800;
+  htim3.Init.Prescaler = 0;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 400;
+  htim3.Init.Period = 0;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
@@ -513,7 +569,7 @@ static void MX_TIM3_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 250;
+  sConfigOC.Pulse = 0;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
@@ -640,8 +696,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOE, M24SR64_Y_RF_DISABLE_Pin|M24SR64_Y_GPO_Pin|ISM43362_RST_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, ARD_D10_Pin|ARD_D13_Pin|ARD_D12_Pin|ARD_D11_Pin 
-                          |SPBTLE_RF_RST_Pin|ARD_D9_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, ARD_D13_Pin|ARD_D12_Pin|ARD_D11_Pin|SPBTLE_RF_RST_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, ARD_D8_Pin|ISM43362_BOOT0_Pin|ISM43362_WAKEUP_Pin|LED2_Pin 
@@ -687,10 +742,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : ARD_D10_Pin ARD_D13_Pin ARD_D12_Pin ARD_D11_Pin 
-                           SPBTLE_RF_RST_Pin ARD_D9_Pin */
-  GPIO_InitStruct.Pin = ARD_D10_Pin|ARD_D13_Pin|ARD_D12_Pin|ARD_D11_Pin 
-                          |SPBTLE_RF_RST_Pin|ARD_D9_Pin;
+  /*Configure GPIO pins : ARD_D13_Pin ARD_D12_Pin ARD_D11_Pin SPBTLE_RF_RST_Pin */
+  GPIO_InitStruct.Pin = ARD_D13_Pin|ARD_D12_Pin|ARD_D11_Pin|SPBTLE_RF_RST_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -812,7 +865,7 @@ void buildPacket()
 	  sprintf(tempString, "%05.1f%05.1f%04.0f", myTemperature, myHumidity, myPressure);
 	  strcat(packet, tempString);
 
-	  //Arduino ARD.A3-ADC, ARD.A4-ADC, ARD.A5-ADC
+	  //Arduino ARD.A0-ADC, ARD.A1-ADC, ARD.A2-ADC, ARD.A3-ADC, ARD.A4-ADC, ARD.A5-ADC
 	  sprintf(tempString, "%04ld%04ld%04ld%04ld%04ld%04ld", adcArd[0], adcArd[1], adcArd[2],adcArd[3], adcArd[4], adcArd[5]);
 	  strcat(packet, tempString);		//0-4095
 	//  printf("%s\n", tempString);
@@ -875,6 +928,11 @@ void rxPacket()
 	  int d5pulse =0;
 	  int d6pulse=0;
 
+	  int d9d10prescaler = 0;
+	  int d9d10period = 0;
+	  int d9pulse =0;
+	  int d10pulse=0;
+
 	  int state=0;
 	  int checkSumCalc=0;
 
@@ -900,14 +958,29 @@ void rxPacket()
 		  case 15:
 		  case 16://d6 pulsewidth
 		  case 17:
-		  case 18: checksum += serialRxBuffer[i]; break;
-		  case 19: checkSumCalc += (serialRxBuffer[i]-'0')*100; break;
-		  case 20: checkSumCalc += (serialRxBuffer[i]-'0')*10; break;
-		  case 21: checkSumCalc += (serialRxBuffer[i]-'0'); break;
-		  case 22:
-		  case 23: break;
+		  case 18:
+		  case 19://d9 d10 prescaler
+		  case 20:
+		  case 21:
+		  case 22://d9 d10 period
+		  case 23:
+		  case 24:
+		  case 25://d9 pulsewidth
+		  case 26:
+		  case 27:
+		  case 28://d10 pulsewidth
+		  case 29:
+		  case 30: checksum += serialRxBuffer[i]; break;
+		  case 31: checkSumCalc += (serialRxBuffer[i]-'0')*100; break;
+		  case 32: checkSumCalc += (serialRxBuffer[i]-'0')*10; break;
+		  case 33: checkSumCalc += (serialRxBuffer[i]-'0'); break;
+		  case 34:// /r
+		  case 35:// /n
+			  	  break;
 		  }
 	  }
+
+	  checksum %=1000;	//keep to 3 digits
 
 	  if(checksum)
 	  {
@@ -983,6 +1056,64 @@ void rxPacket()
 
 
 
+
+				  d9d10prescaler += (serialRxBuffer[19]-'0')*100;		//tmr2 ch1 and 3 prescaler
+				  d9d10prescaler += (serialRxBuffer[20]-'0')*10;
+				  d9d10prescaler += serialRxBuffer[21]-'0';
+
+				  d9d10period += (serialRxBuffer[22]-'0')*100;			//tmr3 ch1 and 3 period
+				  d9d10period += (serialRxBuffer[23]-'0')*10;
+				  d9d10period += serialRxBuffer[24]-'0';
+
+				  d9pulse += (serialRxBuffer[25]-'0')*100;				//ch1 pulsewidth
+				  d9pulse += (serialRxBuffer[26]-'0')*10;
+				  d9pulse += serialRxBuffer[27]-'0';
+
+				  d10pulse += (serialRxBuffer[28]-'0')*100;				//ch3 pulsewidth
+				  d10pulse += (serialRxBuffer[29]-'0')*10;
+				  d10pulse += serialRxBuffer[30]-'0';
+
+				  htim2.Init.Prescaler = d9d10prescaler;					//update tmr2 info
+				  htim2.Init.Period = d9d10period;
+				  if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
+				  {
+				      Error_Handler();
+				  }
+
+				  sConfigOC.OCMode = TIM_OCMODE_PWM1;				//update ch1 pulsewidth
+				  sConfigOC.Pulse = d9pulse;
+				  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+				  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+				  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+				  {
+				    Error_Handler();
+				  }
+
+				  sConfigOC.Pulse = d10pulse;						//update ch3 pulsewidth
+				  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+				  {
+					  Error_Handler();
+				  }
+
+				  if(d9d10period && d9pulse)		//if there is a period and pulsewidth then start pwm ch1
+				  {
+					  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+				  }
+				  else
+				  {
+					  HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_1);
+				  }
+
+				  if(d9d10period && d10pulse)		//if there is a period and pulsewidth then start pwm ch3
+				  {
+					  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
+				  }
+				  else
+				  {
+					  HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_3);
+				  }
+
+
 			  }
 
 		  checksum=0;	//reset for next run
@@ -1020,3 +1151,5 @@ void assert_failed(char *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
+
+/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
